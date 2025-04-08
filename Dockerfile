@@ -41,6 +41,12 @@ RUN mkdir -p /app/data/rag_storage /app/data/inputs
 # Docker data directories
 ENV WORKING_DIR=/app/data/rag_storage
 ENV INPUT_DIR=/app/data/inputs
+# Set environment variables for PostgreSQL
+ENV POSTGRES_HOST=172.18.37.164
+ENV POSTGRES_PORT=5433
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=postgres
+ENV POSTGRES_DATABASE=rag
 
 # Expose the default port
 EXPOSE 9621

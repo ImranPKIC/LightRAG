@@ -1373,59 +1373,52 @@ async def _find_most_related_text_unit_from_entities(
     }
 
     all_text_units_lookup = {}
-    tasks = []
 
+    async def fetch_chunk_data(c_id, index):
+        if c_id not in all_text_units_lookup:
+            chunk_data = await text_chunks_db.get_by_id(c_id)
+            # Only store valid data
+            if chunk_data is not None and "content" in chunk_data:
+                all_text_units_lookup[c_id] = {
+                    "data": chunk_data,
+                    "order": index,
+                }
+
+    tasks = []
     for index, (this_text_units, this_edges) in enumerate(zip(text_units, edges)):
         for c_id in this_text_units:
-            if c_id not in all_text_units_lookup:
-                all_text_units_lookup[c_id] = index
-                tasks.append((c_id, index, this_edges))
+            tasks.append(fetch_chunk_data(c_id, index))
 
-    results = await asyncio.gather(
-        *[text_chunks_db.get_by_id(c_id) for c_id, _, _ in tasks]
-    )
+    await asyncio.gather(*tasks)
 
-    for (c_id, index, this_edges), data in zip(tasks, results):
-        all_text_units_lookup[c_id] = {
-            "data": data,
-            "order": index,
-            "relation_counts": 0,
-        }
-
-        if this_edges:
-            for e in this_edges:
-                if (
-                    e[1] in all_one_hop_text_units_lookup
-                    and c_id in all_one_hop_text_units_lookup[e[1]]
-                ):
-                    all_text_units_lookup[c_id]["relation_counts"] += 1
-
-    # Filter out None values and ensure data has content
-    all_text_units = [
-        {"id": k, **v}
-        for k, v in all_text_units_lookup.items()
-        if v is not None and v.get("data") is not None and "content" in v["data"]
-    ]
-
-    if not all_text_units:
-        logger.warning("No valid text units found")
+    if not all_text_units_lookup:
+        logger.warning("No valid text chunks found")
         return []
 
-    all_text_units = sorted(
-        all_text_units, key=lambda x: (x["order"], -x["relation_counts"])
-    )
+    all_text_units = [{"id": k, **v} for k, v in all_text_units_lookup.items()]
+    all_text_units = sorted(all_text_units, key=lambda x: x["order"])
 
-    all_text_units = truncate_list_by_token_size(
-        all_text_units,
+    # Ensure all text chunks have content
+    valid_text_units = [
+        t for t in all_text_units if t["data"] is not None and "content" in t["data"]
+    ]
+
+    if not valid_text_units:
+        logger.warning("No valid text chunks after filtering")
+        return []
+
+    truncated_text_units = truncate_list_by_token_size(
+        valid_text_units,
         key=lambda x: x["data"]["content"],
         max_token_size=query_param.max_token_for_text_unit,
     )
 
     logger.debug(
-        f"Truncate chunks from {len(all_text_units_lookup)} to {len(all_text_units)} (max tokens:{query_param.max_token_for_text_unit})"
+        f"Truncate chunks from {len(valid_text_units)} to {len(truncated_text_units)} (max tokens:{query_param.max_token_for_text_unit})"
     )
 
-    all_text_units = [t["data"] for t in all_text_units]
+    all_text_units: list[TextChunkSchema] = [t["data"] for t in truncated_text_units]
+
     return all_text_units
 
 

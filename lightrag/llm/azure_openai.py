@@ -36,8 +36,7 @@ import numpy as np
         (RateLimitError, APIConnectionError, APIConnectionError)
     ),
 )
-async def azure_openai_complete_if_cache(
-    model,
+async def azure_openai_complete(
     prompt,
     system_prompt=None,
     history_messages=[],
@@ -49,60 +48,54 @@ async def azure_openai_complete_if_cache(
     if api_key:
         os.environ["AZURE_OPENAI_API_KEY"] = api_key
     if base_url:
-        os.environ["AZURE_OPENAI_ENDPOINT"] = base_url
+        os.environ["AZURE_OPENAI_API_BASE"] = base_url
     if api_version:
         os.environ["AZURE_OPENAI_API_VERSION"] = api_version
 
-    openai_async_client = AsyncAzureOpenAI(
-        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-        azure_deployment=model,
-        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-        api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-    )
-    kwargs.pop("hashing_kv", None)
+    client = AsyncAzureOpenAI()
+
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
     messages.extend(history_messages)
-    if prompt is not None:
-        messages.append({"role": "user", "content": prompt})
+    messages.append({"role": "user", "content": prompt})
 
-    if "response_format" in kwargs:
-        response = await openai_async_client.beta.chat.completions.parse(
-            model=model, messages=messages, **kwargs
+    try:
+        response = await client.chat.completions.create(
+            messages=messages,
+            **kwargs
         )
-    else:
-        response = await openai_async_client.chat.completions.create(
-            model=model, messages=messages, **kwargs
-        )
-
-    if hasattr(response, "__aiter__"):
-
-        async def inner():
-            async for chunk in response:
-                if len(chunk.choices) == 0:
-                    continue
-                content = chunk.choices[0].delta.content
-                if content is None:
-                    continue
-                if r"\u" in content:
-                    content = safe_unicode_decode(content.encode("utf-8"))
-                yield content
-
-        return inner()
-    else:
-        content = response.choices[0].message.content
-        if r"\u" in content:
-            content = safe_unicode_decode(content.encode("utf-8"))
-        return content
+        return safe_unicode_decode(response.choices[0].message.content)
+    except Exception as e:
+        raise e
 
 
-async def azure_openai_complete(
+async def azure_openai_complete_if_cache(
+    model,
+    prompt,
+    system_prompt=None,
+    history_messages=[],
+    base_url=None,
+    api_key=None,
+    api_version=None,
+    **kwargs,
+):
+    return await azure_openai_complete(
+        prompt,
+        system_prompt=system_prompt,
+        history_messages=history_messages,
+        base_url=base_url,
+        api_key=api_key,
+        api_version=api_version,
+        **kwargs,
+    )
+
+
+async def azure_openai_complete_with_keyword_extraction(
     prompt, system_prompt=None, history_messages=[], keyword_extraction=False, **kwargs
 ) -> str:
     keyword_extraction = kwargs.pop("keyword_extraction", None)
-    result = await azure_openai_complete_if_cache(
-        os.getenv("LLM_MODEL", "gpt-4o-mini"),
+    result = await azure_openai_complete(
         prompt,
         system_prompt=system_prompt,
         history_messages=history_messages,

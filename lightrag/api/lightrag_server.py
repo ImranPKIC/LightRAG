@@ -37,7 +37,6 @@ from lightrag.api.routers.document_routes import (
 from lightrag.api.routers.query_routes import create_query_routes
 from lightrag.api.routers.graph_routes import create_graph_routes
 from lightrag.api.routers.ollama_api import OllamaAPI
-
 from lightrag.utils import logger, set_verbose_debug
 from lightrag.kg.shared_storage import (
     get_namespace_data,
@@ -46,6 +45,8 @@ from lightrag.kg.shared_storage import (
 )
 from fastapi.security import OAuth2PasswordRequestForm
 from lightrag.api.auth import auth_handler
+from groq import Groq
+from openai import OpenAI
 
 # Load environment variables
 # Updated to use the .env that is inside the current folder
@@ -72,6 +73,7 @@ def create_app(args):
         "openai",
         "openai-ollama",
         "azure_openai",
+        "groq"
     ]:
         raise Exception("llm binding not supported")
 
@@ -98,6 +100,23 @@ def create_app(args):
 
     # Check if API key is provided either through env var or args
     api_key = os.getenv("LIGHTRAG_API_KEY") or args.key
+    
+    # Load Groq and OpenAI API keys from .env
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    
+    if args.llm_binding == "groq" and not groq_api_key:
+        raise Exception("GROQ_API_KEY not found in .env file")
+
+    if args.embedding_binding == "openai" and not openai_api_key:
+        raise Exception("OPENAI_API_KEY not found in .env file")
+        
+    # Initialize Groq and OpenAI clients
+    if args.llm_binding == "groq":
+        groq_client = Groq(api_key=groq_api_key)
+        
+    if args.embedding_binding == "openai":
+        openai_client = OpenAI(api_key=openai_api_key)
 
     # Initialize document manager
     doc_manager = DocumentManager(args.input_dir)
@@ -131,7 +150,7 @@ def create_app(args):
                 task.add_done_callback(app.state.background_tasks.discard)
                 logger.info(f"Process {os.getpid()} auto scan task started at startup.")
 
-            ASCIIColors.green("\nServer is ready to accept connections! 🚀\n")
+            ASCIIColors.green("\nServer is ready to accept connections! \n")
 
             yield
 
@@ -194,9 +213,11 @@ def create_app(args):
         from lightrag.llm.openai import openai_complete_if_cache, openai_embed
     if args.llm_binding == "azure_openai" or args.embedding_binding == "azure_openai":
         from lightrag.llm.azure_openai import (
-            azure_openai_complete_if_cache,
+            azure_openai_complete,
             azure_openai_embed,
         )
+    if args.llm_binding == "groq":
+        from lightrag.llm.groq import groq_model_complete
     if args.llm_binding_host == "openai-ollama" or args.embedding_binding == "ollama":
         from lightrag.llm.openai import openai_complete_if_cache
         from lightrag.llm.ollama import ollama_embed
@@ -237,8 +258,7 @@ def create_app(args):
         if history_messages is None:
             history_messages = []
         kwargs["temperature"] = args.temperature
-        return await azure_openai_complete_if_cache(
-            args.llm_model,
+        return await azure_openai_complete(
             prompt,
             system_prompt=system_prompt,
             history_messages=history_messages,
@@ -280,14 +300,16 @@ def create_app(args):
     )
 
     # Initialize RAG
-    if args.llm_binding in ["lollms", "ollama", "openai"]:
+    if args.llm_binding in ["lollms", "ollama", "openai", "groq"]:
         rag = LightRAG(
             working_dir=args.working_dir,
             llm_model_func=lollms_model_complete
             if args.llm_binding == "lollms"
             else ollama_model_complete
             if args.llm_binding == "ollama"
-            else openai_alike_model_complete,
+            else groq_model_complete
+            if args.llm_binding == "groq"
+            else openai_complete_if_cache,
             llm_model_name=args.llm_model,
             llm_model_max_async=args.max_async,
             llm_model_max_token_size=args.max_tokens,
@@ -300,6 +322,8 @@ def create_app(args):
                 "api_key": args.llm_binding_api_key,
             }
             if args.llm_binding == "lollms" or args.llm_binding == "ollama"
+            else {"api_key": args.llm_binding_api_key}
+            if args.llm_binding in ["groq", "openai"]
             else {},
             embedding_func=embedding_func,
             kv_storage=args.kv_storage,
