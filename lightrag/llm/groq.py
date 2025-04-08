@@ -2,6 +2,7 @@
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 """
 Groq LLM Integration for LightRAG
 """
@@ -68,6 +69,8 @@ async def groq_model_complete(
         logger.error(f"Error in groq_model_complete: {str(e)}")
         raise
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -251,6 +254,10 @@ async def groq_stream_complete(
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+        raise
+>>>>>>> Stashed changes
+=======
         raise
 >>>>>>> Stashed changes
 =======

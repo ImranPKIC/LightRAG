@@ -77,7 +77,11 @@ def create_app(args):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         "groq"
+=======
+        "groq",
+>>>>>>> Stashed changes
 =======
         "groq",
 >>>>>>> Stashed changes
@@ -237,7 +241,11 @@ def create_app(args):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         from lightrag.llm.groq import groq_model_complete
+=======
+        from lightrag.llm.groq import groq_stream_complete
+>>>>>>> Stashed changes
 =======
         from lightrag.llm.groq import groq_stream_complete
 >>>>>>> Stashed changes
@@ -343,9 +351,15 @@ def create_app(args):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             else groq_model_complete
             if args.llm_binding == "groq"
             else openai_complete_if_cache,
+=======
+            else openai_alike_model_complete
+            if args.llm_binding == "openai"
+            else groq_stream_complete,
+>>>>>>> Stashed changes
 =======
             else openai_alike_model_complete
             if args.llm_binding == "openai"
@@ -381,9 +395,13 @@ def create_app(args):
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             if args.llm_binding == "lollms" or args.llm_binding == "ollama"
             else {"api_key": args.llm_binding_api_key}
             if args.llm_binding in ["groq", "openai"]
+=======
+            if args.llm_binding in ["lollms", "ollama"]
+>>>>>>> Stashed changes
 =======
             if args.llm_binding in ["lollms", "ollama"]
 >>>>>>> Stashed changes
