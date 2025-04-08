@@ -73,7 +73,11 @@ def create_app(args):
         "openai",
         "openai-ollama",
         "azure_openai",
+<<<<<<< Updated upstream
         "groq"
+=======
+        "groq",
+>>>>>>> Stashed changes
     ]:
         raise Exception("llm binding not supported")
 
@@ -217,7 +221,11 @@ def create_app(args):
             azure_openai_embed,
         )
     if args.llm_binding == "groq":
+<<<<<<< Updated upstream
         from lightrag.llm.groq import groq_model_complete
+=======
+        from lightrag.llm.groq import groq_stream_complete
+>>>>>>> Stashed changes
     if args.llm_binding_host == "openai-ollama" or args.embedding_binding == "ollama":
         from lightrag.llm.openai import openai_complete_if_cache
         from lightrag.llm.ollama import ollama_embed
@@ -307,9 +315,15 @@ def create_app(args):
             if args.llm_binding == "lollms"
             else ollama_model_complete
             if args.llm_binding == "ollama"
+<<<<<<< Updated upstream
             else groq_model_complete
             if args.llm_binding == "groq"
             else openai_complete_if_cache,
+=======
+            else openai_alike_model_complete
+            if args.llm_binding == "openai"
+            else groq_stream_complete,
+>>>>>>> Stashed changes
             llm_model_name=args.llm_model,
             llm_model_max_async=args.max_async,
             llm_model_max_token_size=args.max_tokens,
@@ -321,9 +335,13 @@ def create_app(args):
                 "options": {"num_ctx": args.max_tokens},
                 "api_key": args.llm_binding_api_key,
             }
+<<<<<<< Updated upstream
             if args.llm_binding == "lollms" or args.llm_binding == "ollama"
             else {"api_key": args.llm_binding_api_key}
             if args.llm_binding in ["groq", "openai"]
+=======
+            if args.llm_binding in ["lollms", "ollama"]
+>>>>>>> Stashed changes
             else {},
             embedding_func=embedding_func,
             kv_storage=args.kv_storage,
