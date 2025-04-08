@@ -1,4 +1,5 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 """
 Groq LLM Integration for LightRAG
 """
@@ -65,6 +66,8 @@ async def groq_model_complete(
         logger.error(f"Error in groq_model_complete: {str(e)}")
         raise
 =======
+=======
+>>>>>>> Stashed changes
 import os
 from groq import AsyncGroq
 from typing import Optional, Union, List, Any, AsyncGenerator
@@ -239,5 +242,9 @@ async def groq_stream_complete(
         if keyword_extraction:
             # Return valid empty response for keyword extraction
             return PROMPTS["DEFAULT_COMPLETION_DELIMITER"]
+<<<<<<< Updated upstream
+        raise
+>>>>>>> Stashed changes
+=======
         raise
 >>>>>>> Stashed changes
